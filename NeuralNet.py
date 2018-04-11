@@ -7,7 +7,7 @@ import random as rand
 class Prime_Num_Neural_Net:
 
     #just having set defaults, that we can change with the function call.
-    def __init__(self,num_size, amount_of_hidden = 2,nodes_count = 150,batch_size = 10, epochs = 10):
+    def __init__(self,num_size, amount_of_hidden = 4,nodes_count = 151,batch_size = 10, epochs = 10):
         self.binary_num_size = num_size
         self.amount_of_hidden = amount_of_hidden
         self.nodes_count = nodes_count
@@ -24,17 +24,28 @@ class Prime_Num_Neural_Net:
     def create_model(self):
         #the layering model...
         #should make this modular for n number of layers?
+        hidden_list = list()
 
+        #adding the first layer
         hidden_1_layer = {'weights':tf.Variable(tf.random_normal([self.binary_num_size, self.nodes_count])),
                       'biases':tf.Variable(tf.random_normal([self.nodes_count]))}
+
+        for layer in range(1,self.amount_of_hidden):
+            tmp_layer = {'weights':tf.Variable(tf.random_normal([self.binary_num_size, self.nodes_count])),
+                          'biases':tf.Variable(tf.random_normal([self.nodes_count]))}
+            hidden_list.append(tmp_layer)
 
         output_layer = {'weights':tf.Variable(tf.random_normal([self.nodes_count, 2])),
                         'biases':tf.Variable(tf.random_normal([2])),}
 
-        l1 = tf.add(tf.matmul(self.x,hidden_1_layer['weights']), hidden_1_layer['biases'])
-        l1 = tf.nn.relu(l1)
+        ln = tf.add(tf.matmul(self.x,hidden_1_layer['weights']), hidden_1_layer['biases'])
+        ln = tf.nn.relu(ln)
 
-        output = tf.matmul(l1,output_layer['weights']) + output_layer['biases']
+        for layer in hidden_list:
+            ln = tf.add(tf.matmul(ln,layer['weights']),layer['biases'])
+            ln = tf.nn.relu(ln)
+
+        output = tf.matmul(ln,output_layer['weights']) + output_layer['biases']
         return output
 
     """
@@ -84,10 +95,10 @@ class Prime_Num_Neural_Net:
         for spot in characters:
             bin_list.append(spot)
             count+=1
-### this means that something is wrong...
-        while(count != 150):
+        while(count < 151):
             bin_list = [0] + bin_list
             count+=1
+
         return bin_list
 
     """
@@ -149,7 +160,7 @@ Returns:
 """
 def get_data(file_name,percentage, randomize = True):
     #line_count = file_len(file_name)
-    line_count = 100000
+    line_count = 200000
     lines_taken = int(line_count * percentage)
     df_num = read_csv("./" +file_name,nrows = lines_taken)
     if(randomize):
@@ -158,5 +169,6 @@ def get_data(file_name,percentage, randomize = True):
 
 
 data = get_data("paddednumbersBin.csv",0.90)
-P = Prime_Num_Neural_Net(150)
+P = Prime_Num_Neural_Net(151)
+#P.create_model()
 P.train_neural_network(data)
