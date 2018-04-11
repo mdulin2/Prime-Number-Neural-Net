@@ -6,14 +6,15 @@ import random as rand
 
 class Prime_Num_Neural_Net:
 
-    def __init__(self,num_size):
+    #just having set defaults, that we can change with the function call.
+    def __init__(self,num_size, amount_of_hidden = 2,nodes_count = 150,batch_size = 10, epochs = 10):
         self.binary_num_size = num_size
-        self.amount_of_hidden = 1
-        self.nodes_count = 150
-        self.batch_size = 10
+        self.amount_of_hidden = amount_of_hidden
+        self.nodes_count = nodes_count
+        self.batch_size = batch_size
+        self.epochs = epochs
         self.x = tf.placeholder('float',[None,self.binary_num_size])
         self.y = tf.placeholder('float')
-        self.epochs = 4
 
     """
     Creates the phyiscal model for the neural network to work under
@@ -34,7 +35,6 @@ class Prime_Num_Neural_Net:
         l1 = tf.nn.relu(l1)
 
         output = tf.matmul(l1,output_layer['weights']) + output_layer['biases']
-        print "OUtput type", type(output)
         return output
 
     """
@@ -45,25 +45,30 @@ class Prime_Num_Neural_Net:
         percentage(int): the accuracy of the model
     """
     def train_neural_network(self,data):
+        #gets the neuralnet model
         prediction = self.create_model()
+
+        #setting up all the tensorflow fun!
         cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=self.y) )
         optimizer = tf.train.AdamOptimizer().minimize(cost)
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            self.get_train_input(data,10)
 
             for epoch_num in range(self.epochs):
                 epoch_loss = 0
                 for _ in range(int(self.batch_size)):
-                    epoche_x, epoche_y= self.get_train_input(data,10)
+                    #gets the training set from the "data".
+                    epoche_x, epoche_y= self.get_train_input(data,5000)
+                    #trains the model
                     _, c = sess.run([optimizer, cost], feed_dict={self.x: epoche_x,self.y: epoche_y})
                     epoch_loss += c
                 print('Epoch', epoch_num, 'completed out of',self.epochs,'loss:',epoch_loss)
             correct = tf.equal(tf.argmax(prediction, 1), tf.argmax(self.y, 1))
             accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
 
-            #some sort of testing set here!
-            #print('Accuracy:',accuracy.eval({x:mnist.test.images, y:mnist.test.labels}))
+            #The testing of the model!
+            x_test,y_test = self.get_train_input(data,1000)
+            print('Accuracy:',accuracy.eval({self.x:x_test, self.y:y_test}))
 
 
     """
@@ -79,7 +84,7 @@ class Prime_Num_Neural_Net:
         for spot in characters:
             bin_list.append(spot)
             count+=1
-
+### this means that something is wrong...
         while(count != 150):
             bin_list = [0] + bin_list
             count+=1
@@ -93,14 +98,14 @@ class Prime_Num_Neural_Net:
     Returns:
         value(list): the list [1,0] if composite and [0,1] if prime.
     """
-    def convert_primality(self,value):
+    def convert_primality(self, value):
         if(value == 0):
             return [1,0]
         else:
             return [0,1]
 
     """
-    Reformats the dataframe into a np array
+    Reformats the dataframe into an np array
     Args:
         data(panda dataframe): the full amount of training data
         size(int): the amount from teh set to grab
@@ -120,8 +125,6 @@ class Prime_Num_Neural_Net:
         x = np.array(x)
         y = np.array(y)
         return x,y
-
-
 
 """
 Gets the length of the file in lines.
@@ -146,7 +149,7 @@ Returns:
 """
 def get_data(file_name,percentage, randomize = True):
     #line_count = file_len(file_name)
-    line_count = 200
+    line_count = 100000
     lines_taken = int(line_count * percentage)
     df_num = read_csv("./" +file_name,nrows = lines_taken)
     if(randomize):
@@ -155,6 +158,5 @@ def get_data(file_name,percentage, randomize = True):
 
 
 data = get_data("paddednumbersBin.csv",0.90)
-x = tf.placeholder('float', [None, 784])
 P = Prime_Num_Neural_Net(150)
 P.train_neural_network(data)
